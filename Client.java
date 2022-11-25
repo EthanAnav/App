@@ -1,109 +1,69 @@
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.net.*;
 import java.io.*;
-import java.util.*;
+import java.net.Socket;
+import java.util.Scanner;
 
-public class Client {
-	private ObjectInputStream in;
-	private ObjectOutputStream out;
-	private Socket socket;
-	private String username;
-	private String server;
-	private int portNumber;
-	//private User user;
-	
-	public static ArrayList <String> ActiveUsers;
-	public static ArrayList <String> GroupChat;
-	
-	public void setUsername() {
-		this.username = username;
-	}
-	
-	public  String getUsername() {
-		return username;
-	}
-	
-	//For threaded client
-	Client(String server, int portNumber, String username){
-		this.server = server;
-	    this.portNumber = portNumber;
-	    this.username = username;
-	}		
-	
-	
-	public void run() {
-		try {
-			in  = new ObjectInputStream(socket.getInputStream());
-			out = new ObjectOutputStream(socket.getOutputStream());
-			
-			while (true) {
-				String message = in.readLine();
-				if(message.equalsIgnoreCase("exit")) {
-					break;
-				}
-				sendMessage(message);
-				System.out.println("Server intercepted " + message);
-			}
-		}
-		catch (Exception e) {
-			System.out.println("Error occurred " + e.getStackTrace());
-		}
-		// creates the Thread to listen from the server 
-		Listener listen = new Listener();
-		Thread client = new Thread(listen);
-		client.start();
-	}
-	
-	void sendMessage(Message message) {
-		try {
-			out.writeObject(message);
-		}
-		catch(IOException e) {
-			System.out.println("Error sending message " + e);
-		}
-	}
-	
-	public static void main(String[] args) {
-		int portNumber = 7777;
-		String server = "localhost";
-		String userName = "miguel";
-		Scanner scan = new Scanner(System.in);
-		System.out.println("Enter the username: ");
-		userName = scan.nextLine();	
-		
-		// create the Client object
-		Client client = new Client(server, portNumber, userName);
-		
-		while(true) {
-			//GUI OPTIONS HERE
-			break;
-		}
-		
-		scan.close();
-		
-	}		
-	
+class Client {
 
+    public static void main(String[] args) {
 
-public void start() {
-	while(true) {
-		try {
-			String message = in.readObject().toString(); 
-			// print the message
-			System.out.println(message);
-			
-		}
-		catch(IOException e) {
-			System.out.println("Server error " + e );
-			break;
-		}
-		catch(ClassNotFoundException i) {
-		}
-	}
+        Scanner sc = new Scanner(System.in); //System.in is a standard input stream.
+        System.out.print("Enter the port number to connect to: <7777>");
+        int port = sc.nextInt();
+        System.out.print("Enter the host address to connect to: <localhost> ");
+        String host = sc.next();
+        sc.nextLine();
+
+        try {
+            // Connect to the ServerSocket at host:port
+            Socket socket = new Socket(host, port);
+            System.out.println("Connected to " + host + ":" + port);
+
+            // Output stream socket.
+            OutputStream outputStream = socket.getOutputStream();
+
+            // Create object output stream from the output stream to send an object through it
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+
+            InputStream inputStream = socket.getInputStream();
+
+            ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+
+            Message msg = new Message("login", "", "");
+            objectOutputStream.writeObject(msg);
+            msg = (Message) objectInputStream.readObject();
+            if (msg != null) {
+                System.out.println(msg.getType() + " " + msg.getStatus());
+                if ("login".equalsIgnoreCase(msg.getType()) && "success".equalsIgnoreCase(msg.getStatus())) {
+                    boolean running = true;
+                    while (running) {
+                        System.out.print("Enter text to send to the server: ");
+                        String text = sc.nextLine();
+                        if ("logout".equalsIgnoreCase(text)) {
+                            msg = new Message("logout", "", "");
+                            objectOutputStream.writeObject(msg);
+                        } else {
+                            msg = new Message("text", "", text);
+                            objectOutputStream.writeObject(msg);
+                        }
+                        msg = (Message) objectInputStream.readObject();
+                        if (msg != null) {
+                            if ("logout".equalsIgnoreCase(msg.getType()) && "success".equalsIgnoreCase(msg.getStatus())) {
+                                System.out.println(msg.getType() + " " + msg.getStatus());
+                                running = false;
+                            } else {
+                                System.out.println("Server replied: " + msg.getText());
+                            }
+                        }
+                    }
+                    System.out.println("Closing socket");
+                    socket.close();
+                    sc.close();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException ex) {
+            ex.printStackTrace();
+        }
+    }
 }
-}
-
-
-

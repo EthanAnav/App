@@ -1,82 +1,101 @@
 import java.io.*;
-import java.util.*;
-import java.net.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 
-public class Server {
-	static Vector<ActiveUsers> active = new Vector<>();
-	//counts the clients
-	static int i = 0;
-	
-	public static void main(String[] args) throws IOException {
-		ServerSocket server = new ServerSocket(7777);
-		Socket socket;
-		
-		while(true) {
-			socket = server.accept();
-			System.out.println("New user connected: " + socket);
-			
-			ObjectInputStream in  = new ObjectInputStream(socket.getInputStream());
-			ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-			
-			System.out.println("Creating a new thread for this client...");
-			
-			ActiveUsers user = new ActiveUsers(socket,"client " + i, in, out);
-			
-			Thread newUser = new Thread(user);
-			
-			active.add(user);
-			
-			newUser.start();
-			
-			i++;
-		}
-	}
+class Server {
+
+    public static void main(String[] args) {
+        ServerSocket server = null;
+        int port = 7777;
+        try {
+            server = new ServerSocket(port);
+            server.setReuseAddress(true);
+            System.out.println("ServerSocket awaiting connections...");
+            boolean running = true;
+            while (running) {
+                Socket client = server.accept();
+                ClientHandler clientSocket = new ClientHandler();
+                clientSocket.socket = client;
+                System.out.println("Connection start: " + client);
+                Thread thread = new Thread(clientSocket);
+                thread.start();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (server != null) {
+                try {
+                    server.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private static class ClientHandler implements Runnable {
+
+        Socket socket;
+
+        public void run() {
+
+            ObjectOutputStream objectOutputStream = null;
+            ObjectInputStream objectInputStream = null;
+
+            try {
+                // get the outputstream of client
+                OutputStream outputStream = socket.getOutputStream();
+                objectOutputStream = new ObjectOutputStream(outputStream);
+
+                // get the inputstream of client
+                InputStream inputStream = socket.getInputStream();
+                objectInputStream = new ObjectInputStream(inputStream);
+
+                Message msg = null;
+                // loop until login message not received
+                boolean running = true;
+                while (running) {
+                    msg = (Message) objectInputStream.readObject();
+                    if (msg != null && "login".equalsIgnoreCase(msg.getType())) {
+                        running = false;
+                    }
+                }
+                msg.setStatus("success");
+                objectOutputStream.writeObject(msg);
+
+                running = true;
+                while (running) {
+                    msg = (Message) objectInputStream.readObject();
+                    if (msg != null) {
+                        // writing the received message from client
+                        if (msg.getType().equalsIgnoreCase("logout")) {
+                            msg.setStatus("success");
+                            objectOutputStream.writeObject(msg);
+                            running = false;
+                        } else {
+                            msg.setText(msg.getText().toUpperCase());
+                            objectOutputStream.writeObject(msg);
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ClassNotFoundException ex) {
+                ex.printStackTrace();
+            } finally {
+                try {
+                    if (objectOutputStream != null) {
+                        objectOutputStream.close();
+                    }
+                    if (objectInputStream != null) {
+                        objectInputStream.close();
+                        socket.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("Connection close: " + socket);
+        }
+    }
 }
-
-class ActiveUsers implements Runnable {
-	Scanner scn = new Scanner(System.in);
-	private String name;
-	final ObjectInputStream finalIn;
-    final ObjectOutputStream finalOut;
-	Socket s;
-	boolean isloggedin; 
-	
-	public ActiveUsers(Socket s, String name, ObjectInputStream finalIn, ObjectOutputStream finalOut) {
-		this.finalIn = finalIn;
-		this.finalOut = finalOut;
-		this.name = name;
-		this.s = s;
-		this.isloggedin=true;
-	}
-	
-	@Override
-	public void run() {
-		String notification;
-		while(true) {
-			try {
-				notification = finalIn.readUTF();
-				System.out.println(notification);
-				
-				for (ActiveUsers mc : Server.active)
-				{
-				// if the recipient is found, write on its
-				// output stream
-				if (mc.name.equals(user) && mc.isloggedin==true)
-				{
-				mc.finalOut.writeUTF(this.name+" : "+ Message);
-					break;
-				}
-				
-				this.finalIn.close();
-				this.finalOut.close();
-			}
-			
-			catch(IOException e){
-				e.printStackTrace();
-		    }
-		}
-		
-	}
-	
-	
-	

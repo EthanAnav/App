@@ -3,20 +3,43 @@ public class User {
 
     private String username;
     private String password;
-    public String name;
     public String status;
-    //public IndividualChat newIndividualChat;
-    //public GroupChat newGroupChat;
+    
+    
+    
+    
+    public User(String username, String password, String status) {
+		super();
+		this.username = username;
+		this.password = password;
+		this.status = status;
+	}
 
-    public void login(String username, String password) {
-        if (this.username.equals(name) && this.password.equals(password)) {
-            status = "login";
-        } else {
-            status = "logout";
-        }
-    }
 
-    public void logout() {
-        status = "logout";
-    }
+	public String getStatus() {
+		return status;
+	}
+    
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+
+   
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
 }

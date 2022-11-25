@@ -5,7 +5,7 @@ public class AddUser {
 	private String password;
 	public String name;
 	
-	public void createAccount() {
+	public void Login() {
 		Scanner in = new Scanner(System.in);
 		System.out.println("Enter username: ");
 		String user = in.nextLine();
